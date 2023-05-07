@@ -1,0 +1,28 @@
+{
+  "name": "bytereader",
+  "version": "0.0.1",
+  "description": "An npm package for reading binary files written in TypeScript",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+	"build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DashGL/ByteReader.git"
+  },
+  "keywords": [
+    "binary",
+    "bytereader",
+    "bytes"
+  ],
+  "author": "kion",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DashGL/ByteReader/issues"
+  },
+  "homepage": "https://github.com/DashGL/ByteReader#readme",
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  }
+}

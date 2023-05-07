@@ -23,14 +23,14 @@
     
 */
 
-import prs from './prs'
+import prs from './prs';
 
 const psz = (inBuffer: ArrayBuffer): ArrayBuffer => {
-    const toDecompress = new Uint8Array(inBuffer.slice(0x10));
-    for (let i = 0; i < toDecompress.byteLength; i++) {
-        toDecompress[i] ^= 0x95;
-    }
-    return prs(toDecompress.buffer);
-}
+  const toDecompress = new Uint8Array(inBuffer.slice(0x10));
+  for (let i = 0; i < toDecompress.byteLength; i++) {
+    toDecompress[i] ^= 0x95;
+  }
+  return prs(toDecompress.buffer);
+};
 
 export default psz;

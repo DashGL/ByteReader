@@ -24,111 +24,108 @@
 */
 
 export default class ByteReader {
-    private ofs: number;
-    private view: DataView;
-    private littleEndian: boolean;
-    private length: number;
-    private bytes: ArrayBuffer;
+  private ofs: number;
+  private view: DataView;
+  private littleEndian: boolean;
+  private length: number;
+  private bytes: ArrayBuffer;
 
-    constructor(bytes: ArrayBuffer, littleEndian = true) {
-        this.bytes = bytes;
-        this.length = bytes.byteLength;
-        this.view = new DataView(bytes);
-        this.ofs = 0;
-        this.littleEndian = littleEndian;
-    }
+  constructor(bytes: ArrayBuffer, littleEndian = true) {
+    this.bytes = bytes;
+    this.length = bytes.byteLength;
+    this.view = new DataView(bytes);
+    this.ofs = 0;
+    this.littleEndian = littleEndian;
+  }
 
-    seek(whence:number): void {
-        this.ofs = whence
-    }
+  seek(whence: number): void {
+    this.ofs = whence;
+  }
 
-    seekRel(whence:number): void {
-        this.ofs += whence
-    }
+  seekRel(whence: number): void {
+    this.ofs += whence;
+  }
 
-    seekEnd(whence:number): void {
-        if(whence > 0) {
-            console.warn('ByteStream seekEnd function expects a negative whence argument');
-        } 
-        this.ofs = this.length + whence;
+  seekEnd(whence: number): void {
+    if (whence > 0) {
+      console.warn('ByteStream seekEnd function expects a negative whence argument');
     }
+    this.ofs = this.length + whence;
+  }
 
-    tell(): number {
-        return this.ofs;
-    }
+  tell(): number {
+    return this.ofs;
+  }
 
-    tellf(): string {
-        return `0x${this.ofs.toString(16).padStart(6, '0')}`;
-    }
+  tellf(): string {
+    return `0x${this.ofs.toString(16).padStart(6, '0')}`;
+  }
 
-    readInt8(): number {
-        const n = this.view.getInt8(this.ofs);
-        this.ofs += 1;
-        return n;
-    }
+  readInt8(): number {
+    const n = this.view.getInt8(this.ofs);
+    this.ofs += 1;
+    return n;
+  }
 
-    readUInt8(): number {
-        const n = this.view.getUint8(this.ofs);
-        this.ofs += 1;
-        return n;
-    }
+  readUInt8(): number {
+    const n = this.view.getUint8(this.ofs);
+    this.ofs += 1;
+    return n;
+  }
 
-    readInt16(): number {
-        const n = this.view.getInt16(this.ofs, this.littleEndian);
-        this.ofs += 2;
-        return n;
-    }
+  readInt16(): number {
+    const n = this.view.getInt16(this.ofs, this.littleEndian);
+    this.ofs += 2;
+    return n;
+  }
 
-    readUInt16(): number {
-        const n = this.view.getUint16(this.ofs, this.littleEndian);
-        this.ofs += 2;
-        return n;
-    }
+  readUInt16(): number {
+    const n = this.view.getUint16(this.ofs, this.littleEndian);
+    this.ofs += 2;
+    return n;
+  }
 
-    readInt32(): number {
-        const n = this.view.getInt32(this.ofs, this.littleEndian);
-        this.ofs += 4;
-        return n;
-    }
+  readInt32(): number {
+    const n = this.view.getInt32(this.ofs, this.littleEndian);
+    this.ofs += 4;
+    return n;
+  }
 
-    readUInt32(): number {
-        const n = this.view.getUint32(this.ofs, this.littleEndian);
-        this.ofs += 4;
-        return n;
-    }
+  readUInt32(): number {
+    const n = this.view.getUint32(this.ofs, this.littleEndian);
+    this.ofs += 4;
+    return n;
+  }
 
-    readFloat(): number {
-        const n = this.view.getFloat32(this.ofs, this.littleEndian);
-        this.ofs += 4;
-        return n;
-    }
+  readFloat(): number {
+    const n = this.view.getFloat32(this.ofs, this.littleEndian);
+    this.ofs += 4;
+    return n;
+  }
 
-    readString(length = 0): string {
-        let str = '';
-        const end = length > 0 ? this.ofs + length : this.length
-        do {
-            const n = this.readUInt8();
-            if(n === 0){
-                break;
-            }
-            str += String.fromCharCode(n);
-        } while (this.ofs < end)
-        return str;
-    }
+  readString(length = 0): string {
+    let str = '';
+    const end = length > 0 ? this.ofs + length : this.length;
+    do {
+      const n = this.readUInt8();
+      if (n === 0) {
+        break;
+      }
+      str += String.fromCharCode(n);
+    } while (this.ofs < end);
+    return str;
+  }
 
-    toString(startOffset: number, endOffset: number): string {
-        let str ='';
-        for(let ofs = startOffset; startOffset < endOffset; ofs++) {
-            const n = this.view.getInt8(ofs)
-            str += String.fromCharCode(n);
-        }
-        return str;
+  toString(startOffset: number, endOffset: number): string {
+    let str = '';
+    for (let ofs = startOffset; startOffset < endOffset; ofs++) {
+      const n = this.view.getInt8(ofs);
+      str += String.fromCharCode(n);
     }
+    return str;
+  }
 
-    subArray(startOffset: number, endOffset: number): ArrayBuffer {
-        return this.bytes.slice(startOffset, endOffset);
-    }
-    
+  subArray(startOffset: number, endOffset: number): ArrayBuffer {
+    return this.bytes.slice(startOffset, endOffset);
+  }
 }
-
-

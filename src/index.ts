@@ -24,15 +24,15 @@
 */
 
 // Class Import
-import ByteReader from "./ByteReader";
+import ByteReader from './ByteReader';
 
 // Function Imports
-import narc from "./narc";
-import prs from "./prs";
-import psz from "./psz";
+import narc from './narc';
+import prs from './prs';
+import psz from './psz';
 
 // Type Imports
-import { ByteFile } from "./types";
+import { ByteFile } from './types';
 
 // Exports
 export default ByteReader;

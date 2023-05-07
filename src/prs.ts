@@ -23,80 +23,77 @@
     
 */
 
-import ByteStream from "./ByteReader"
+import ByteStream from './ByteReader';
 
 const prs = (buffer: ArrayBuffer): ArrayBuffer => {
+  const inBuffer = new Uint8Array(buffer);
+  const outBuffer: number[] = [];
+  const bs = new ByteStream(inBuffer);
+  const { byteLength } = inBuffer;
 
-    const inBuffer = new Uint8Array(buffer);
-    const outBuffer: number[] = [];
-    const bs = new ByteStream(inBuffer);
-    const { byteLength } = inBuffer;
+  const out = {
+    ofs: 0,
+    bit: 0,
+    cmd: 0,
+  };
 
-    const out = {
-        ofs: 0,
-        bit: 0,
-        cmd: 0,
+  const getBit = (): number => {
+    if (out.bit === 0) {
+      out.cmd = bs.readUInt8();
+      out.bit = 8;
     }
 
-    const getBit = (): number => {
-        if (out.bit === 0) {
-            out.cmd = bs.readUInt8()
-            out.bit = 8
-        }
+    const newBit = out.cmd & 1;
+    out.cmd >>= 1;
+    out.bit -= 1;
+    return newBit ? 1 : 0;
+  };
 
-        const newBit = out.cmd & 1;
-        out.cmd >>= 1;
-        out.bit -= 1;
-        return newBit ? 1 : 0;
+  while (out.ofs < byteLength) {
+    const bool = getBit();
+    if (bool) {
+      outBuffer.push(inBuffer[out.ofs]);
+      out.ofs += 1;
+      continue;
     }
 
-    while (out.ofs < byteLength) {
-        const bool = getBit();
-        if (bool) {
-            outBuffer.push(inBuffer[out.ofs]);
-            out.ofs += 1;
-            continue;
-        }
+    const t = getBit();
+    let amount = 0;
+    let start = 0;
 
-        const t = getBit();
-        let amount = 0;
-        let start = 0;
+    if (t) {
+      const a = bs.readUInt8();
+      const b = bs.readUInt8();
 
-        if (t) {
-            const a = bs.readUInt8()
-            const b = bs.readUInt8()
-
-            const offset = ((b << 8) | a) >> 3;
-            amount = a & 7;
-            if (out.ofs < byteLength) {
-                amount = amount === 0 ? bs.readUInt8() + 10 : amount + 2;
-            }
-            start = outBuffer.length - 0x2000 + offset;
-        } else {
-            amount = 0;
-            for (let i = 0; i < 2; i++) {
-                amount <<= 1;
-                amount |= getBit();
-            }
-            const offset = bs.readUInt8()
-            amount += 2;
-            start = outBuffer.length - 0x100 + offset;
-        }
-
-        for (let i = 0; i < amount; i++) {
-            if (start >= 0 && start < outBuffer.length) {
-                outBuffer.push(outBuffer[start]);
-            } else {
-                outBuffer.push(0);
-            }
-            start += 1;
-        }
-
+      const offset = ((b << 8) | a) >> 3;
+      amount = a & 7;
+      if (out.ofs < byteLength) {
+        amount = amount === 0 ? bs.readUInt8() + 10 : amount + 2;
+      }
+      start = outBuffer.length - 0x2000 + offset;
+    } else {
+      amount = 0;
+      for (let i = 0; i < 2; i++) {
+        amount <<= 1;
+        amount |= getBit();
+      }
+      const offset = bs.readUInt8();
+      amount += 2;
+      start = outBuffer.length - 0x100 + offset;
     }
 
-    const array = new Uint8Array(outBuffer);
-    return array.buffer;
+    for (let i = 0; i < amount; i++) {
+      if (start >= 0 && start < outBuffer.length) {
+        outBuffer.push(outBuffer[start]);
+      } else {
+        outBuffer.push(0);
+      }
+      start += 1;
+    }
+  }
 
-}
+  const array = new Uint8Array(outBuffer);
+  return array.buffer;
+};
 
 export default prs;

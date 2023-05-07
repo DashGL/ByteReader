@@ -23,10 +23,8 @@
 */
 
 type ByteFile = {
-    name: string;
-    data: ArrayBuffer;
-}
+  name: string;
+  data: ArrayBuffer;
+};
 
-export {
-    ByteFile
-}
+export { ByteFile };

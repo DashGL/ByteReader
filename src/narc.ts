@@ -23,148 +23,146 @@
     
 */
 
-import narc from "./narc";
-import ByteReader from "./ByteReader";
-import { ByteFile } from './types'
+import ByteReader from './ByteReader';
+import { ByteFile } from './types';
 
 const narc = (inBuffer: ArrayBuffer): ByteFile[] => {
-     
-    const files: ByteFile[] = []
-    const bs = new ByteReader(inBuffer);
+  const files: ByteFile[] = [];
+  const bs = new ByteReader(inBuffer);
 
-    // https://docs.dashgl.com/format/phantasy-star-zero/narc-archive#narc-section
+  // https://docs.dashgl.com/format/phantasy-star-zero/narc-archive#narc-section
 
-    const NARC_MAGIC = 0x4352414e;
+  const NARC_MAGIC = 0x4352414e;
 
-    const narcSection = {
-        magic: bs.readUInt32(),
-        a:  bs.readUInt16(),
-        b: bs.readUInt16(),
-        archiveLen: bs.readUInt32(),
-        headerLen: bs.readUInt16(),
-        c: bs.readUInt16(),
+  const narcSection = {
+    magic: bs.readUInt32(),
+    a: bs.readUInt16(),
+    b: bs.readUInt16(),
+    archiveLen: bs.readUInt32(),
+    headerLen: bs.readUInt16(),
+    c: bs.readUInt16(),
+  };
+
+  if (narcSection.magic !== NARC_MAGIC) {
+    throw new Error('Invalid NARC magic number');
+  }
+
+  // https://docs.dashgl.com/format/phantasy-star-zero/narc-archive#btaf-section
+
+  const BTAF_MAGIC = 0x46415442;
+
+  type bnafFiles_t = {
+    name: string;
+    startOffset: number;
+    endOffset: number;
+  };
+
+  const btafSection = {
+    magic: bs.readUInt32(),
+    length: bs.readUInt32(),
+    count: bs.readUInt32(),
+  };
+
+  if (btafSection.magic !== BTAF_MAGIC) {
+    throw new Error('Invalid BTAF magic number');
+  }
+
+  const { count } = btafSection;
+  const bnafFiles: bnafFiles_t[] = [];
+
+  for (let i = 0; i < count; i++) {
+    bnafFiles.push({
+      name: '',
+      startOffset: bs.readUInt32(),
+      endOffset: bs.readUInt32(),
+    });
+  }
+
+  // https://docs.dashgl.com/format/phantasy-star-zero/narc-archive#btnf-section
+
+  const btnfHeader = {
+    magic: bs.readUInt32(),
+    length: bs.readUInt32(),
+  };
+
+  const relOffset = bs.tell();
+  bnafFiles.forEach((file) => {
+    file.startOffset += relOffset;
+    file.endOffset += relOffset;
+  });
+
+  const rootNameEntryOffset = bs.readUInt32();
+
+  // Read file names
+  if (btnfHeader.length >= 16 && rootNameEntryOffset !== 4) {
+    const firstFileIndex = bs.readUInt16();
+    const rootDirectory = {
+      parent: -1,
+      name: '',
+      nameEntryOffset: 0,
+      firstFileIndex,
+      count: 0,
+    };
+
+    const directoryEntryCount = bs.readUInt16();
+    const directoryEntries = [rootDirectory];
+
+    for (let i = 1; i < directoryEntryCount; i++) {
+      const nameEntryTableOffset = bs.readUInt32();
+      const firstFileIndex = bs.readUInt16();
+      const parentDirectoryIndex = bs.readUInt16() & 0xfff;
+
+      directoryEntries.push({
+        parent: parentDirectoryIndex,
+        name: `${parentDirectoryIndex.toString().padStart(3, '0')}`,
+        nameEntryOffset: nameEntryTableOffset,
+        firstFileIndex: firstFileIndex,
+        count: 0,
+      });
     }
 
-    if(narcSection.magic !== NARC_MAGIC) {
-        throw new Error('Invalid NARC magic number');
+    let currentDirectory = rootDirectory;
+    let directoryIndex = 0;
+    let fileIndex = 0;
+
+    while (directoryIndex < directoryEntryCount) {
+      const byte = bs.readUInt8();
+
+      if (byte === 0) {
+        directoryIndex++;
+        if (directoryIndex >= directoryEntryCount) {
+          break;
+        }
+        currentDirectory = directoryEntries[directoryIndex];
+        continue;
+      }
+
+      currentDirectory.count++;
+      const stringLen = byte & 0x7f;
+      const name = bs.readString(stringLen);
+
+      if (byte & 0x80) {
+        const entryDirectoryIndex = bs.readUInt16() & 0xfff;
+        const directoryEntry = directoryEntries[entryDirectoryIndex];
+        directoryEntry.name = name;
+      } else {
+        const fileEntry = bnafFiles[fileIndex];
+        const dir = directoryEntries[directoryIndex].name;
+
+        fileEntry.name = dir + name;
+        fileIndex++;
+      }
     }
+  }
 
-    // https://docs.dashgl.com/format/phantasy-star-zero/narc-archive#btaf-section
+  // Loop Through each file and slice
+  bnafFiles.forEach((file) => {
+    const { name, startOffset, endOffset } = file;
+    const data = bs.subArray(startOffset, endOffset);
+    files.push({ name, data });
+  });
 
-    const BTAF_MAGIC = 0x46415442;
-
-    type bnafFiles_t = {
-        name: string,
-        startOffset: number;
-        endOffset: number;
-    }
-
-    const btafSection = {
-        magic: bs.readUInt32(),
-        length: bs.readUInt32(),
-        count: bs.readUInt32(),
-    }
-
-    if(btafSection.magic !== BTAF_MAGIC) {
-        throw new Error('Invalid BTAF magic number');
-    }
-
-    const { count } = btafSection;
-    const bnafFiles:bnafFiles_t[] = [];
-    
-    for(let i = 0; i < count; i++){
-        bnafFiles.push({
-            name: '',
-            startOffset: bs.readUInt32(),
-            endOffset: bs.readUInt32()
-        })
-    }
-
-    // https://docs.dashgl.com/format/phantasy-star-zero/narc-archive#btnf-section
-
-    const btnfHeader = {
-        magic: bs.readUInt32(),
-        length: bs.readUInt32()
-    }
-
-    const relOffset = bs.tell();
-    bnafFiles.forEach( file => {
-        file.startOffset += relOffset;
-        file.endOffset += relOffset;
-    })
-
-    const rootNameEntryOffset = bs.readUInt32();
-    
-    // Read file names
-    if(btnfHeader.length >= 16 && rootNameEntryOffset !== 4) {
-
-        const firstFileIndex = bs.readUInt16();
-		const rootDirectory = {
-            parent: -1,
-			name : '',
-            nameEntryOffset: 0,
-            firstFileIndex
-		}
-
-		const directoryEntryCount = bs.readUInt16();
-		const directoryEntries = [ rootDirectory ]
-
-		for (let i = 1; i < directoryEntryCount; i++) {
-			const nameEntryTableOffset = bs.readUInt32();
-			const firstFileIndex = bs.readUInt16();
-			const parentDirectoryIndex = bs.readUInt16() & 0xFFF;
-
-			directoryEntries.push({
-				parent : parentDirectoryIndex,
-                name: `${parentDirectoryIndex.toString().padStart(3, '0')}`,
-				nameEntryOffset : nameEntryTableOffset,
-				firstFileIndex : firstFileIndex
-			});
-		}
-
-		let currentDirectory = rootDirectory;
-		let directoryIndex = 0;
-		let fileIndex = 0;
-
-		while (directoryIndex < directoryEntryCount) {
-
-			const byte = bs.readUInt8();
-
-            if(byte === 0) {
-                directoryIndex++;
-				if (directoryIndex >= directoryEntryCount) {
-					break;
-				}
-				currentDirectory = directoryEntries[directoryIndex];
-                continue;
-            }
-
-            const stringLen = byte & 0x7F;
-            const name = bs.readString(stringLen);
-
-            if(byte & 0x80) {	
-				const entryDirectoryIndex = bs.readUInt16() & 0xFFF;
-				const directoryEntry = directoryEntries[entryDirectoryIndex];
-				directoryEntry.name = name;
-            } else {
-                const fileEntry = bnafFiles[fileIndex];
-				const dir = directoryEntries[directoryIndex].name;
-
-				fileEntry.name = dir + name
-				fileIndex++;
-            }
-
-		}
-    }
-
-    // Loop Through each file and slice
-    bnafFiles.forEach( file => {
-        const { name, startOffset, endOffset } = file;
-        const data = bs.subArray(startOffset, endOffset);
-        files.push({name, data});
-    })
-
-    return files;
-}
+  return files;
+};
 
 export default narc;

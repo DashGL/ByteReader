@@ -103,26 +103,39 @@ export default class ByteReader {
     return n;
   }
 
-  readString(length = 0): string {
-    let str = '';
-    const end = length > 0 ? this.ofs + length : this.length;
-    do {
-      const n = this.readUInt8();
-      if (n === 0) {
-        break;
+  readString(length?: number): string {
+    const str: string[] = [];
+
+    if (!length) {
+      do {
+        const n = this.readUInt8();
+        if (n === 0) {
+          return str.join('');
+        }
+        str.push(String.fromCharCode(n));
+      } while (this.ofs < this.length);
+
+      throw new Error('String is not terminated before EOF');
+    } else {
+      for (let i = 0; i < length; i++) {
+        const n = this.readUInt8();
+        if (n === 0) {
+          break;
+        }
+        str.push(String.fromCharCode(n));
       }
-      str += String.fromCharCode(n);
-    } while (this.ofs < end);
-    return str;
+    }
+
+    return str.join('');
   }
 
   toString(startOffset: number, endOffset: number): string {
-    let str = '';
+    const str: string[] = [];
     for (let ofs = startOffset; startOffset < endOffset; ofs++) {
       const n = this.view.getInt8(ofs);
-      str += String.fromCharCode(n);
+      str.push(String.fromCharCode(n));
     }
-    return str;
+    return str.join('');
   }
 
   subArray(startOffset: number, endOffset: number): ArrayBuffer {

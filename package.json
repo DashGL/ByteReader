@@ -1,6 +1,6 @@
 {
   "name": "bytereader",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An npm package for reading binary files written in TypeScript",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "main": "lib/index",
   "files": [
-	"/lib"
+    "/lib"
   ],
   "repository": {
     "type": "git",
